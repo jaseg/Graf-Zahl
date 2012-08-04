@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+=begin
 class Class
   def infect!()
     #alias old_new new #FIXME this is ugly
@@ -16,6 +17,7 @@ class Class
     puts "processing new: #{instance}, #{args}, #{block}"
   end
 end
+=end
 
 class Object
   attr_reader :ethic     # good   [1:0] evil
@@ -42,6 +44,7 @@ class Object
   
   def self.infect_method(name)
     @@armed = false if @@armed
+    puts "infecting #{name}"
     begin
       new_method = self.instance_method(name.to_sym)
     rescue NameError
@@ -85,9 +88,11 @@ end
 
 #Method.infect_all
 
+=begin
 #infect global objects
 Module.constants.each do |c|
   #puts "+infecting #{c}"
   c = Module.const_get(c)
   c.infect_all() if c.is_a? Class
 end
+=end
