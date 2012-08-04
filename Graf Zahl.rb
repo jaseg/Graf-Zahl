@@ -1,6 +1,5 @@
 #!/usr/bin/env ruby
 
-=begin
 class Class
   def infect!()
     #alias old_new new #FIXME this is ugly
@@ -17,7 +16,6 @@ class Class
     puts "processing new: #{instance}, #{args}, #{block}"
   end
 end
-=end
 
 class Object
   attr_reader :ethic     # good   [1:0] evil
@@ -68,8 +66,8 @@ class Object
 
   def self.infect_all()
     self.instance_methods.each do |m|
-      #puts "\t-infecting #{m}"
-      infect_method(m)
+      puts "\t-infecting #{m}"
+      infect_method(m) unless m == "call"
     end
     self.initialize_character
   end
@@ -84,15 +82,13 @@ class Object
   end
 end
 
-#Fixnum.infect_all
+Method.infect_all
 
-#Method.infect_all
-
-=begin
 #infect global objects
 Module.constants.each do |c|
-  #puts "+infecting #{c}"
-  c = Module.const_get(c)
-  c.infect_all() if c.is_a? Class
+  unless c == "Method" or c == "UnboundMethod"
+    puts "+infecting #{c}"
+    c = Module.const_get(c)
+    c.infect_all() if c.is_a? Class
+  end
 end
-=end
