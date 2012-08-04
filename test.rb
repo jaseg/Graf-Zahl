@@ -20,8 +20,6 @@ for i in 0..10
   puts "forloop: #{i}"
 end
 
-foo = 10
-10 + 2
-
-puts 1.ethic
+puts 10 == 2
+puts 10 + 2
 

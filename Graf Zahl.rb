@@ -21,7 +21,6 @@ class Object
   attr_reader :ethic     # good   [1:0] evil
   attr_reader :moral     # lawful [1:0] chaotic
 
-  armed = true
   attr_reader :tau       #
   attr_reader :i         #
  
@@ -30,34 +29,34 @@ class Object
   attr_reader :stamina   #        [1:0]
   attr_reader :expertise #        [1:0]
 
-  attr_accessor :armed
-
-  protected_class_methods = self.methods;
-  
-  def self.process_call(method, name, character, *args, &block)
-    return if @@protected_class_methods.include? name
-    #puts "processing call: #{method} as #{name} with #{character} given #{args} and #{block}"
+  def self.process_call(inst, method, name, character, *args, &block)
+    return unless @@armed
+    @@armed = false if @@armed
+    puts "processing call: #{method} as #{name} on #{inst} which is a #{self} with #{character} given #{args} and #{block}"
+    @@armed = true if not @@armed.nil?
   end
 
   def self.process_method(method, name)
-    return if @@protected_class_methods.include? name
     puts "procsessing method #{method} as #{name}"
   end
   
   def self.infect_method(name)
+    @@armed = false if @@armed
     begin
       new_method = self.instance_method(name.to_sym)
     rescue NameError
-    #  puts "cannot infect #{name}: #{e}"
-    #  @armed = true if not @armed.nil?
+      puts "cannot infect #{name}"
+      @@armed = true if not @@armed.nil?
       return
     end
     character = process_method(new_method, name)
     handler = self.method(:process_call)
     define_method name do |*args, &block|
-      handler.call(new_method, name, character, *args, &block)
-      new_method.bind(self).call(*args, &block)
+      handler.call(self, new_method, name, character, *args, &block)
+      rv = new_method.bind(self).call(*args, &block)
+      rv
     end
+    @@armed = true if not @@armed.nil?
   end
   
   def self.initialize_character()
@@ -65,20 +64,26 @@ class Object
   end
 
   def self.infect_all()
-    puts @@protected_class_methods
-    self.methods.each do |m|
+    self.instance_methods.each do |m|
       #puts "\t-infecting #{m}"
       infect_method(m)
     end
     self.initialize_character
   end
 
-  class_variable_set(:@@protected_class_methods, self.methods - protected_class_methods)
+  def self.armed
+    @@armed
+  end
+  class_variable_set(:@@armed, true)
 
   def self.method_added(name)
-    infect_method(name) if @armed
+    infect_method(name) if @@armed
   end
 end
+
+#Fixnum.infect_all
+
+#Method.infect_all
 
 #infect global objects
 Module.constants.each do |c|
@@ -86,4 +91,3 @@ Module.constants.each do |c|
   c = Module.const_get(c)
   c.infect_all() if c.is_a? Class
 end
-
