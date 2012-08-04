@@ -13,26 +13,22 @@ class BasicObject
   attr_reader :expertise #        [1:0]
 
   def self.process_call(inst, method, name, character, *args, &block)
-    return
     return unless @@armed
     @@armed = false
     puts "processing call: #{method} as #{name} on #{inst} which is a #{self} with #{character || "no character"} given #{args.size > 0?args:"no args"} and #{block || "no block"}"
-    rv = method.bind(inst).call(*args, &block)
     @@armed = true
-    rv
   end
 
   def self.process_method(method, name)
-    puts "procsessing method #{method} as #{name}" #if @@armed
+    puts "procsessing method #{method} as #{name}" if @@armed
   end
   
   def self.infect_method(name)
     @@armed = false if @@armed
-    puts "infecting #{name}"
     begin
       new_method = self.instance_method(name.to_sym)
     rescue NameError
-      puts "cannot infect #{name}"
+      puts "\t\t[!] cannot infect #{name}"
       @@armed = true if not @@armed.nil?
       return
     end
@@ -40,6 +36,7 @@ class BasicObject
     handler = self.method(:process_call)
     define_method name do |*args, &block|
       handler.call(self, new_method, name, character, *args, &block)
+      new_method.bind(self).call(*args, &block)
     end
     @@armed = true if not @@armed.nil?
   end
@@ -51,7 +48,7 @@ class BasicObject
   def self.infect_all!
     self.instance_methods.each do |m|
       unless m == :call or m == :!
-        puts "\t-infecting #{m}"
+        #puts "\t-infecting #{m}"
         infect_method(m)
       end
     end
@@ -82,7 +79,7 @@ Method.infect_all!
 #infect global objects
 Module.constants.each do |c|
   unless c == :Method or c == :UnboundMethod
-    puts "+infecting #{c}"
+    #puts "+infecting #{c}"
     c = Module.const_get(c)
     c.infect_all! if c.is_a? Class
   end
