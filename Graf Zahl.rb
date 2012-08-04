@@ -13,19 +13,22 @@ class BasicObject
   attr_reader :expertise #        [1:0]
 
   def self.process_call(inst, method, name, character, *args, &block)
+    return
     return unless @@armed
-    @@armed = false if @@armed
+    @@armed = false
     puts "processing call: #{method} as #{name} on #{inst} which is a #{self} with #{character || "no character"} given #{args.size > 0?args:"no args"} and #{block || "no block"}"
-    @@armed = true if not @@armed.nil?
+    rv = method.bind(inst).call(*args, &block)
+    @@armed = true
+    rv
   end
 
   def self.process_method(method, name)
-    puts "procsessing method #{method} as #{name}" if @@armed
+    puts "procsessing method #{method} as #{name}" #if @@armed
   end
   
   def self.infect_method(name)
     @@armed = false if @@armed
-    #puts "infecting #{name}"
+    puts "infecting #{name}"
     begin
       new_method = self.instance_method(name.to_sym)
     rescue NameError
@@ -34,12 +37,9 @@ class BasicObject
       return
     end
     character = process_method(new_method, name)
-    #puts "defining method"
     handler = self.method(:process_call)
     define_method name do |*args, &block|
       handler.call(self, new_method, name, character, *args, &block)
-      rv = new_method.bind(self).call(*args, &block)
-      rv
     end
     @@armed = true if not @@armed.nil?
   end
@@ -50,7 +50,8 @@ class BasicObject
 
   def self.infect_all!
     self.instance_methods.each do |m|
-      unless m == :call
+      unless m == :call or m == :!
+        puts "\t-infecting #{m}"
         infect_method(m)
       end
     end
@@ -68,7 +69,7 @@ class BasicObject
   end
 
   def self.disarm!
-    class_variable_set(:@@armed, false)
+    class_variable_set(:@@armed, nil)
   end
 
   def self.method_added(name)
