@@ -1,23 +1,6 @@
 #!/usr/bin/env ruby
 
-class Class
-  def infect!()
-    #alias old_new new #FIXME this is ugly
-    old_new = self.instance_method(:new) if self.respond_to? :new
-    define_method "new" do|*args, &block|
-      self.class.process_new(self, *args, &block)
-      old_new.bind(self).call(*args, &block)
-    end
-  end
-
-  infect!
-
-  def self.process_new(instance, *args, &block)
-    puts "processing new: #{instance}, #{args}, #{block}"
-  end
-end
-
-class Object
+class BasicObject
   attr_reader :ethic     # good   [1:0] evil
   attr_reader :moral     # lawful [1:0] chaotic
 
@@ -32,17 +15,17 @@ class Object
   def self.process_call(inst, method, name, character, *args, &block)
     return unless @@armed
     @@armed = false if @@armed
-    puts "processing call: #{method} as #{name} on #{inst} which is a #{self} with #{character} given #{args} and #{block}"
+    puts "processing call: #{method} as #{name} on #{inst} which is a #{self} with #{character || "no character"} given #{args.size > 0?args:"no args"} and #{block || "no block"}"
     @@armed = true if not @@armed.nil?
   end
 
   def self.process_method(method, name)
-    puts "procsessing method #{method} as #{name}"
+    puts "procsessing method #{method} as #{name}" if @@armed
   end
   
   def self.infect_method(name)
     @@armed = false if @@armed
-    puts "infecting #{name}"
+    #puts "infecting #{name}"
     begin
       new_method = self.instance_method(name.to_sym)
     rescue NameError
@@ -51,6 +34,7 @@ class Object
       return
     end
     character = process_method(new_method, name)
+    #puts "defining method"
     handler = self.method(:process_call)
     define_method name do |*args, &block|
       handler.call(self, new_method, name, character, *args, &block)
@@ -60,14 +44,15 @@ class Object
     @@armed = true if not @@armed.nil?
   end
   
-  def self.initialize_character()
+  def self.initialize_character
     #FIXME
   end
 
-  def self.infect_all()
+  def self.infect_all!
     self.instance_methods.each do |m|
-      puts "\t-infecting #{m}"
-      infect_method(m) unless m == "call"
+      unless m == :call
+        infect_method(m)
+      end
     end
     self.initialize_character
   end
@@ -75,20 +60,32 @@ class Object
   def self.armed
     @@armed
   end
-  class_variable_set(:@@armed, true)
+
+  class_variable_set(:@@armed, nil)
+
+  def self.arm!
+    class_variable_set(:@@armed, true)
+  end
+
+  def self.disarm!
+    class_variable_set(:@@armed, false)
+  end
 
   def self.method_added(name)
     infect_method(name) if @@armed
   end
 end
 
-Method.infect_all
+Method.infect_all!
 
 #infect global objects
 Module.constants.each do |c|
-  unless c == "Method" or c == "UnboundMethod"
+  unless c == :Method or c == :UnboundMethod
     puts "+infecting #{c}"
     c = Module.const_get(c)
-    c.infect_all() if c.is_a? Class
+    c.infect_all! if c.is_a? Class
   end
 end
+
+puts "Graf Zahl resurrected."
+Object.arm!

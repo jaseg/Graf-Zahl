@@ -8,18 +8,7 @@ class Foo
   end
 end
 
-puts "class Foo defined"
-
 f = Foo.new
-
-puts "Foo instantiated"
-
 f.bar
-
-for i in 0..10
-  puts "forloop: #{i}"
-end
-
-puts 10 == 2
-puts 10 + 2
+#puts Foo.inspect
 
