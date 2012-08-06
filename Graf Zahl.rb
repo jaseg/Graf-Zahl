@@ -1,5 +1,23 @@
 #!/usr/bin/env ruby
 
+#require "flog"
+
+def doTehArithmancy (something)
+  ary = something.to_s.downcase.gsub(/[^a-z0-9]/,'').bytes.map do |c|
+    case c
+    when '0'.ord..'9'.ord then c-'0'.ord
+    when 'a'.ord..'i'.ord then c-'a'.ord+1
+    when 'j'.ord..'r'.ord then c-'j'.ord+1
+    when 's'.ord..'z'.ord then c-'s'.ord+1
+    end
+  end
+  if ary.size > 1
+    return doTehArithmancy ary.reduce :+
+  else
+    return ary[0]
+  end
+end
+
 class BasicObject
   attr_reader :ethic     # good   [1:0] evil
   attr_reader :moral     # lawful [1:0] chaotic
@@ -15,12 +33,26 @@ class BasicObject
   def self.process_call(inst, method, name, character, *args, &block)
     return unless @@armed
     @@armed = false
-    puts "processing call: #{method} as #{name} on #{inst} which is a #{self} with #{character || "no character"} given #{args.size > 0?args:"no args"} and #{block || "no block"}"
+    #puts "processing call: #{method} as #{name} on #{inst} which is a #{self} with #{character || "no character"} given #{args.size > 0?args:"no args"} and #{block || "no block"}"
+    file, line = method.source_location
+    if file
+        #score = 2/(1+@files[file].totals["#{method.owner}##{method.name}"])-1;
+    end
     @@armed = true
   end
 
   def self.process_method(method, name)
     puts "procsessing method #{method} as #{name}" if @@armed
+    file, line = method.source_location
+    return unless file
+    @files = ::Hash.new unless @files
+    if @files.has_key? file
+        #flogger = @files[file] 
+    else
+        #flogger = ::Flog.new
+        #@files[file] =  flogger
+        #flogger.flog file
+    end
   end
   
   def self.infect_method(name)
@@ -86,4 +118,4 @@ Module.constants.each do |c|
 end
 
 puts "Graf Zahl resurrected."
-Object.arm!
+#Object.arm!

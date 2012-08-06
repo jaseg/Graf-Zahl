@@ -10,5 +10,7 @@ end
 
 f = Foo.new
 f.bar
+
+#puts f.method(:bar).source_location
 #puts Foo.inspect
 
