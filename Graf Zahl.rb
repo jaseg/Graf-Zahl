@@ -25,12 +25,14 @@ class Character
   attr_accessor :traits_delta
 
   def initialize(traits = Array.new(TRAITS.size, 0), traits_delta = Array.new(TRAITS.size, 0))
-    @traits = traits
-    @traits_delta = traits_delta
+    @traits = traits.to_a
+    @traits_delta = traits_delta.to_a
   end
 
   def self.generate(something)
-    ch = doTehArithmancy(something).character
+    num = doTehArithmancy(something)
+    #puts "got a number: #{num} chr #{num.instance_variable_get(:@character)}"
+    ch = num.character
     return ch.clone if ch
     return Character.new
   end
@@ -63,9 +65,6 @@ class Character
   end
 
   def +(c)
-    #puts "CLS #{self.class} IV #{self}"
-    puts "SELF #{traits.to_a.join(',')} INST #{@traits.to_a.join(',')} C #{c.traits.to_a.join(',')} END"
-    puts "ZIP #{@traits.zip(c.traits).map{|e| e.join(",")}.join("|")}"
     Character.new @traits.zip(c.traits).map{|a| a[0]+a[1]}
   end
 
@@ -95,7 +94,7 @@ class Character
   end
 
   def traits= (*params)
-    Character.new params.zip(@traits).map{|a| a[0] || a[1]}
+    @traits = params.zip(@traits).map{|a| a[0] || a[1]}
   end
 
   def to_s
@@ -103,7 +102,10 @@ class Character
   end
 
   def self.doTehArithmancy (something)
-    ary = something.to_s.downcase.gsub(/[^a-z0-9]/,'').chars.map do |c|
+    #puts "dta called: #{something.class}"
+    data = something.to_s.downcase.gsub(/[^a-z0-9]/,'')
+    return 0 unless data.length > 0
+    ary = data.chars.map do |c|
       case c
       when '0'..'9' then c.ord-'0'.ord
       when 'a'..'i' then c.ord-'a'.ord+1
@@ -114,43 +116,73 @@ class Character
     if ary.size > 1
       return doTehArithmancy ary.reduce :+
     else
+      #puts "returning #{ary[0]} (a #{ary[0].class})"
+      #puts "chr: #{ary[0].instance_variable_get(:@character)}"
       return ary[0]
     end
   end
 end
 
 class BasicObject
-
-  attr_reader :character
-
   def character= (*params)
     @character = ::Character.new unless @character
-    @character.traits = *params[0]
+    @character.traits = *(params[0])
+    #puts "set character for #{self.to_s} to #{@character} according to #{params[0]}"
+  end
+end
+
+#                              ethic ,                    moral ,    tau    , i,agility,strength,stamina,expertise
+0.character=Character::Ethic::NEUTRAL, Character::Moral::CHAOTIC, 2*Math::PI, 0,      0,       1,      1,        0
+1.character=Character::Ethic::NEUTRAL, Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
+2.character=Character::Ethic::NEUTRAL, Character::Moral::NEUTRAL, 2*Math::PI, 0,      0,       1,      1,        0
+3.character=Character::Ethic::GOOD   , Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
+4.character=Character::Ethic::NEUTRAL, Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
+5.character=Character::Ethic::GOOD   , Character::Moral::CHAOTIC, 2*Math::PI, 0,      0,       1,      1,        0
+6.character=Character::Ethic::GOOD   , Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
+7.character=Character::Ethic::GOOD   , Character::Moral::NEUTRAL, 2*Math::PI, 0,      0,       1,      1,        0
+8.character=Character::Ethic::NEUTRAL, Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
+9.character=Character::Ethic::NEUTRAL, Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
+
+class BasicObject
+
+  #this method is necessary so in case the object is frozen the character is computed on the fly
+  def character ()
+    return @character if @character
+    #puts "generating character for #{self.to_s}"
+    ch = ::Character.generate self.to_s
+    @character = ch unless frozen?
+    ch
   end
 
-  def self.process_call(inst, method, name, character, *args, &block)
+  def self.process_call(inst, method, name, chr, *args, &block)
+    @@armed = false if @@armed
+    puts method
+    @@armed = true unless @@armed.nil?
     rv = method.bind(inst).call(*args, &block)
     return rv unless @@armed
     @@armed = false
-    #puts "processing call: #{method} which is #{character || "uncharacteristic"} on #{inst} which is a #{self} with #{inst.character || "no character"} given #{args.size > 0?args:"no args"} and #{block || "no block"}"
+    puts "processing call: #{method} which is #{chr || "uncharacteristic"} on #{inst} which is a #{self} with #{inst.character || "no character"} given #{args.size > 0?args:"no args"} and #{block || "no block"}"
 
     #avgargs = args.inject(:+) / args.size
-    @character.step! if @character
     self.class.character.step!
-    args.each{|a| @character.acc! a.character, 0.001}
-    self.class.character.acc! @character, 0.0001
+    args.each{|a| character.acc! a.character, 0.001}
+    self.class.character.acc! character, 0.0001
     args.each do |a| #FIXME constants ahead!
-      a.character.acc! @character, 0.01
+      a.character.acc! chr, 0.01
+      a.character.acc! character, 0.01
       a.character.acc! self.class.character, 0.001
+      rv.character.acc! a.character, 0.001
     end
+    rv.character.acc! chr, 0.01
+    rv.character.acc! character, 0.002
+    rv.character.acc! self.class.character, 0.001
 
-    rv.initialize_character!
     @@armed = true
     rv
   end
 
   def self.process_method(method, name)
-    ::Character.generate self.class.name
+    ::Character.generate name
   end
   
   def self.infect_method(name)
@@ -162,26 +194,21 @@ class BasicObject
       @@armed = true if not @@armed.nil?
       return
     end
-    character = process_method(new_method, name)
+    chr = process_method(new_method, name)
     handler = self.method(:process_call)
     define_method name do |*args, &block|
-      handler.call(self, new_method, name, character, *args, &block)
+      handler.call(self, new_method, name, chr, *args, &block)
     end
     @@armed = true if not @@armed.nil?
   end
   
-  def initialize_character!
-    @character = ::Character.generate self.class.name
-  end
-
   def self.infect_all!
     self.instance_methods.each do |m|
-      unless m == :call or m == :! or m == :nil? or m == :to_ary or m == :respond_to? or m == :method or m == :instance_method or m == :to_s
+      unless m == :call or m == :! or m == :nil? or m == :to_ary or m == :respond_to? or m == :method or m == :instance_method or m == :to_s or m == :character or m == :process_method
         #puts "\t-infecting #{m}"
         infect_method(m)
       end
     end
-    self.initialize_character!
   end
   
   def self.armed?
@@ -204,24 +231,12 @@ class BasicObject
   end
 end
 
-#                              ethic ,                    moral ,    tau    , i,agility,strength,stamina,expertise
-0.character=Character::Ethic::NEUTRAL, Character::Moral::CHAOTIC, 2*Math::PI, 0,      0,       1,      1,        0
-1.character=Character::Ethic::NEUTRAL, Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
-2.character=Character::Ethic::NEUTRAL, Character::Moral::NEUTRAL, 2*Math::PI, 0,      0,       1,      1,        0
-3.character=Character::Ethic::GOOD   , Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
-4.character=Character::Ethic::NEUTRAL, Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
-5.character=Character::Ethic::GOOD   , Character::Moral::CHAOTIC, 2*Math::PI, 0,      0,       1,      1,        0
-6.character=Character::Ethic::GOOD   , Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
-7.character=Character::Ethic::GOOD   , Character::Moral::NEUTRAL, 2*Math::PI, 0,      0,       1,      1,        0
-8.character=Character::Ethic::NEUTRAL, Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
-9.character=Character::Ethic::NEUTRAL, Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
-
 #puts "+infecting Method"
-Method.infect_all!
+#Method.infect_all!
 
 #infect global objects
 Module.constants.each do |c|
-  unless c == :Method or c == :UnboundMethod or c == :Config or c == :Object or c == :BasicObject or c == :Character or c == :CharacterDelta
+  unless c == :Method or c == :UnboundMethod or c == :Config or c == :Object or c == :BasicObject or c == :Character
     #puts "+infecting #{c}"
     cs = Module.const_get(c)
     cs.infect_all! if cs.is_a? Class
