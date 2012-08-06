@@ -7,7 +7,7 @@ TODO:
 -method/symbol characters which are non-static
 =end
 
-class CharacterDelta
+class Character
   module Moral
     LAWFUL = 1
     NEUTRAL = 0.5
@@ -36,19 +36,20 @@ class CharacterDelta
   end
 
   def acc(chr, factor)
-    CharacterDelta.new(@traits_delta) + (chr - self) * factor
+    return Character.new(@traits_delta) unless chr
+    Character.new(@traits_delta) + (chr - self) * factor
   end
 
   #that stuff is still kinda indirect.
   def acc!(chr, factor)
-    @traits_delta += acc.traits
+    @traits_delta = acc(chr, factor).traits
   end
 
   def step()
-    nc = self + CharacterDelta.new(@traits_delta)
+    nc = self + Character.new(@traits_delta)
     #FIXME Constants ahead!
-    nc.traits_delta = (CharacterDelta.new(@traits_delta) * 0.1).traits
-    nc
+    nc.traits_delta = (Character.new(@traits_delta) * 0.1).traits
+    nc.cap
   end
 
   def step!()
@@ -58,19 +59,22 @@ class CharacterDelta
   end
 
   def -(c)
-    CharacterDelta.new @traits.zip(c.traits).map{|a| a[0]-a[1]}
+    Character.new @traits.zip(c.traits).map{|a| a[0]-a[1]}
   end
 
   def +(c)
-    CharacterDelta.new @traits.zip(c.traits).map{|a| a[0]+a[1]}
+    #puts "CLS #{self.class} IV #{self}"
+    puts "SELF #{traits.to_a.join(',')} INST #{@traits.to_a.join(',')} C #{c.traits.to_a.join(',')} END"
+    puts "ZIP #{@traits.zip(c.traits).map{|e| e.join(",")}.join("|")}"
+    Character.new @traits.zip(c.traits).map{|a| a[0]+a[1]}
   end
 
   def *(s)
-    CharacterDelta.new @traits.map{|t| t*s}
+    Character.new @traits.map{|t| t*s}
   end
   
   def /(s)
-    CharacterDelta.new @traits.map{|t| t/s}
+    Character.new @traits.map{|t| t/s}
   end
 
   def length
@@ -91,7 +95,7 @@ class CharacterDelta
   end
 
   def traits= (*params)
-    CharacterDelta.new params.zip(@traits).map{|a| a[0] || a[1]}
+    Character.new params.zip(@traits).map{|a| a[0] || a[1]}
   end
 
   def to_s
@@ -115,34 +119,6 @@ class CharacterDelta
   end
 end
 
-class Character < CharacterDelta
-  def -(c)
-    (super - c).cap
-  end
-  
-  def +(c)
-    (super + c).cap
-  end
-
-  def *(s)
-    (super * s).cap 
-  end
-
-  def /(s)
-    (super / s).cap 
-  end
-
-  def traits= (t)
-    super.traits = t
-    cap
-  end
-
-  def step! ()
-    super.step!
-    cap
-  end
-end
-
 class BasicObject
 
   attr_reader :character
@@ -161,8 +137,8 @@ class BasicObject
     #avgargs = args.inject(:+) / args.size
     @character.step! if @character
     self.class.character.step!
-    args.each{|a| @character.acc! a*0.001}
-    self.class.character.acc! @character
+    args.each{|a| @character.acc! a.character, 0.001}
+    self.class.character.acc! @character, 0.0001
     args.each do |a| #FIXME constants ahead!
       a.character.acc! @character, 0.01
       a.character.acc! self.class.character, 0.001
@@ -202,7 +178,7 @@ class BasicObject
     self.instance_methods.each do |m|
       unless m == :call or m == :! or m == :nil? or m == :to_ary or m == :respond_to? or m == :method or m == :instance_method or m == :to_s
         #puts "\t-infecting #{m}"
-        #infect_method(m)
+        infect_method(m)
       end
     end
     self.initialize_character!
