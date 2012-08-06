@@ -18,17 +18,26 @@ def doTehArithmancy (something)
   end
 end
 
-class BasicObject
-  attr_reader :ethic     # good   [1:0] evil
-  attr_reader :moral     # lawful [1:0] chaotic
+module Moral
+  LAWFUL = 1
+  NEUTRAL = 0.5
+  CHAOTIC = 0
+end
 
-  attr_reader :tau       #
-  attr_reader :i         #
- 
-  attr_reader :agility   #        [1:0]
-  attr_reader :strength  #        [1:0]
-  attr_reader :stamina   #        [1:0]
-  attr_reader :expertise #        [1:0]
+module Ethic
+  GOOD = 1
+  NEUTRAL = 0.5
+  EVIL = 0
+end
+
+class BasicObject
+  TRAITS = [:ethic, :moral, :tau, :i, :agility, :strength, :stamina, :expertise]
+  attr_reader *TRAITS
+
+  def character= (hash, *params)
+    params.each_with_index{|i, e| instance_variable_set(TRAITS[i], e || instance_variable_get(TRAITS[i]))}
+    hash.each_pair{|k, v| instance_variable_set(k, v) if TRAITS.include? k}
+  end
 
   def self.process_call(inst, method, name, character, *args, &block)
     return unless @@armed
@@ -86,7 +95,7 @@ class BasicObject
     end
     self.initialize_character
   end
-
+  
   def self.armed
     @@armed
   end
@@ -116,6 +125,18 @@ Module.constants.each do |c|
     c.infect_all! if c.is_a? Class
   end
 end
+
+0..9.each{|n| n.character = :tau => Math::PI, :i => 0, :ethic => Ethic::NEUTRAL }
+0.character = :moral => Moral::CHAOTIC
+1.character = :moral => Moral::LAWFUL
+2.character = :moral => Moral::NEUTRAL
+3.character = :moral => Moral::LAWFUL,  :ethic => Ethic::GOOD
+4.character = :moral => Moral::LAWFUL
+5.character = :moral => Moral::CHAOTIC, :ethic => Ethic::GOOD
+6.character = :moral => Moral::LAWFUL,  :ethic => Ethic::GOOD
+7.character = :moral => Moral::NEUTRAL, :ethic => Ethic::GOOD
+8.character = :moral => Moral::LAWFUL
+9.character = :moral => Moral::LAWFUL
 
 puts "Graf Zahl resurrected."
 #Object.arm!
