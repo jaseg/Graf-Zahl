@@ -15,7 +15,7 @@ A planned feature is the on-the-fly modification of method calls when there is a
 
 Why the fuck?
 =============
-Just for fun, and because now I know *a lot* more about ruby's way of OO. You may find this code useful because it can be used for pretty deep debugging of ruby code. Just comment out the whole arithmomancy stuff and uncomment the one ```puts``` in ```process_call(...)```.
+Just for fun, and because now I know *a lot* more about ruby's way of OO. You may find this code useful because it can be used for pretty deep debugging of ruby code. Just comment out the whole arithmomancy stuff and uncomment the one ```puts``` in ```process_call(...)```. Also, ponies.
 
 Hate, Rage, certainly inappropriate accolade
 ============================================
