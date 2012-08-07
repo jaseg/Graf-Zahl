@@ -1,12 +1,5 @@
 #!/usr/bin/env ruby
 
-#require "flog"
-
-=begin
-TODO:
--method/symbol characters which are non-static
-=end
-
 class Character
   module Moral
     LAWFUL = 1
@@ -31,51 +24,42 @@ class Character
   end
 
   def self.generate(something)
-    num = doTehArithmancy(something)
+    ch = doTehArithmancy(something).character
     #puts "got a number: #{num} chr #{num.instance_variable_get(:@character)}"
-    ch = num.character
     return ch.clone if ch
     return Character.new
   end
 
   def acc(chr, factor)
-    return Character.new(@traits_delta) unless chr
-    Character.new(@traits_delta) + (chr - self) * factor
+    return @traits_delta unless chr
+    @traits_delta + (chr - self.traits) * factor
   end
 
   #that stuff is still kinda indirect.
   def acc!(chr, factor)
-    @traits_delta = acc(chr, factor).traits
+    @traits_delta = acc(chr, factor)
   end
 
-  def step()
-    #puts "stepping self: #{@traits.join(',')}"
-    nc = self + Character.new(@traits_delta)
-    #FIXME Constants ahead!
-    nc.traits_delta = (Character.new(@traits_delta) * 0.1).traits
-    nc.cap
+  def step! ()
+    @traits = @traits + @traits_delta
+    @traits_delta = @traits_delta * 0.1
+    cap!
   end
 
-  def step!()
-    nc = step
-    @traits = nc.traits
-    @traits_delta = nc.traits_delta
+  def - (t)
+    @traits.zip(c.traits).map{|a| a[0]-a[1]}
   end
 
-  def -(c)
-    Character.new @traits.zip(c.traits).map{|a| a[0]-a[1]}
+  def + (t)
+    @traits.zip(c.traits).map{|a| a[0]+a[1]}
   end
 
-  def +(c)
-    Character.new @traits.zip(c.traits).map{|a| a[0]+a[1]}
-  end
-
-  def *(s)
-    Character.new @traits.map{|t| t*s}
+  def * (t)
+    @traits.map{|t| t*s}
   end
   
-  def /(s)
-    Character.new @traits.map{|t| t/s}
+  def / (t)
+    @traits.map{|t| t/s}
   end
 
   def length
@@ -83,8 +67,8 @@ class Character
   end
 
   #returns a character
-  def cap
-    Character.new @traits.map! do |v|
+  def cap! ()
+    @traits.map! do |v|
       if v < 0
         0
       elsif v > 1
@@ -125,93 +109,96 @@ class Character
   end
 end
 
-class BasicObject
+module Characterizable
   def character= (*params)
-    @character = ::Character.new unless @character
+    @character = Character.new unless @character
     @character.traits = params[0]
     #puts "set character for #{self.to_s} to #{@character} according to #{params[0]}"
   end
-end
 
-#                              ethic ,                    moral ,    tau    , i,agility,strength,stamina,expertise
-0.character=Character::Ethic::NEUTRAL, Character::Moral::CHAOTIC, 2*Math::PI, 0,      0,       1,      1,        0
-1.character=Character::Ethic::NEUTRAL, Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
-2.character=Character::Ethic::NEUTRAL, Character::Moral::NEUTRAL, 2*Math::PI, 0,      0,       1,      1,        0
-3.character=Character::Ethic::GOOD   , Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
-4.character=Character::Ethic::NEUTRAL, Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
-5.character=Character::Ethic::GOOD   , Character::Moral::CHAOTIC, 2*Math::PI, 0,      0,       1,      1,        0
-6.character=Character::Ethic::GOOD   , Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
-7.character=Character::Ethic::GOOD   , Character::Moral::NEUTRAL, 2*Math::PI, 0,      0,       1,      1,        0
-8.character=Character::Ethic::NEUTRAL, Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
-9.character=Character::Ethic::NEUTRAL, Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
-
-class BasicObject
-
-  #this method is necessary so in case the object is frozen the character is computed on the fly
   def character ()
     return @character if @character
     #puts "generating character for #{self.to_s}"
-    ch = ::Character.generate self.to_s
+    ch = Character.generate self.to_s
     @character = ch unless frozen?
     ch
   end
+end
 
-  def self.process_call(inst, method, name, chr, *args, &block)
-    rv = method.bind(inst).call(*args, &block)
-    return rv unless @@armed
-    @@armed = false
-    #puts "processing call: #{method} which is #{chr || "uncharacteristic"} on #{inst} which is a #{self} with #{inst.character || "no character"} given #{args.size > 0?args:"no args"} and #{block || "no block"}"
+class Fixnum
+  include Characterizable 
+  #                              ethic ,                    moral ,    tau    , i,agility,strength,stamina,expertise
+  0.character=Character::Ethic::NEUTRAL, Character::Moral::CHAOTIC, 2*Math::PI, 0,      0,       1,      1,        0
+  1.character=Character::Ethic::NEUTRAL, Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
+  2.character=Character::Ethic::NEUTRAL, Character::Moral::NEUTRAL, 2*Math::PI, 0,      0,       1,      1,        0
+  3.character=Character::Ethic::GOOD   , Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
+  4.character=Character::Ethic::NEUTRAL, Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
+  5.character=Character::Ethic::GOOD   , Character::Moral::CHAOTIC, 2*Math::PI, 0,      0,       1,      1,        0
+  6.character=Character::Ethic::GOOD   , Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
+  7.character=Character::Ethic::GOOD   , Character::Moral::NEUTRAL, 2*Math::PI, 0,      0,       1,      1,        0
+  8.character=Character::Ethic::NEUTRAL, Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
+  9.character=Character::Ethic::NEUTRAL, Character::Moral::LAWFUL , 2*Math::PI, 0,      0,       1,      1,        0
+end
 
-    #avgargs = args.inject(:+) / args.size
-    self.class.character.step!
-    args.each{|a| character.acc! a.character, 0.001}
-    self.class.character.acc! character, 0.0001
-    rv.character.step!
-    args.each do |a| #FIXME constants ahead!
-      a.character.step!
-      a.character.acc! chr, 0.01
-      a.character.acc! character, 0.01
-      a.character.acc! self.class.character, 0.001
-      rv.character.acc! a.character, 0.001
+class Symbol
+  include Characterizable 
+  all_symbols.each do |sym|
+    sym.character
+  end
+end
+
+class BasicObject
+  def character ()
+    self.class.name.to_sym.character
+  end
+
+  def process_call(method, name, *args, &block)
+    rv = method.bind(self).call(*args, &block)
+    if @@armed
+      puts "processing call..."
+      @@armed = false
+      #puts "processing call: #{method} which is #{chr || "uncharacteristic"} on #{inst} which is a #{self} with #{inst.character || "no character"} given #{args.size > 0?args:"no args"} and #{block || "no block"}"
+
+      character.step!
+      rv.character.step!
+      name.character.step!
+      args.each do |a| #FIXME constants ahead!
+        a.character.step!
+        a.character.acc! name.character, 0.01
+        a.character.acc! character, 0.01
+        character.acc! a.character, 0.001
+        rv.character.acc! a.character, 0.001
+        name.character.acc! a.character, 0.001
+      end
+      rv.character.acc! name.character, 0.01
+      rv.character.acc! character, 0.002
+      character.acc! name.character, 0.001
+
+      @@armed = true
     end
-    rv.character.acc! chr, 0.01
-    rv.character.acc! character, 0.002
-    rv.character.acc! self.class.character, 0.001
-
-    @@armed = true
-    rv
+    return rv
   end
 
-  def self.process_method(method, name)
-    ::Character.generate name
-  end
-  
   def self.infect_method(name)
     @@armed = false if @@armed
-    begin
-      new_method = self.instance_method(name.to_sym)
-    rescue NameError
-      puts "\t\t[!] cannot infect #{name}"
-      @@armed = true if not @@armed.nil?
-      return
-    end
-    chr = process_method(new_method, name)
-    handler = self.method(:process_call)
+    raw_method = self.instance_method(name.to_sym)
     define_method name do |*args, &block|
-      handler.call(self, new_method, name, chr, *args, &block)
+      self.process_call(raw_method, name, *args, &block)
     end
     @@armed = true if not @@armed.nil?
   end
   
   def self.infect_all!
     self.instance_methods.each do |m|
-      unless m == :call or m == :! or m == :nil? or m == :to_ary or m == :respond_to? or m == :method or m == :instance_method or m == :to_s or m == :character or m == :process_method
-        #puts "\t-infecting #{m}"
-        infect_method(m)
-      end
+      #puts "\t-infecting #{m}"
+      infect_method(m)
     end
   end
-  
+
+  def self.method_added(name)
+    infect_method(name) if @@armed
+  end
+
   def self.armed?
     @@armed
   end
@@ -226,26 +213,14 @@ class BasicObject
     class_variable_set(:@@armed, nil)
   end
 
-  def self.method_added(name)
-    #puts "added: #{name}"
-    infect_method(name) if @@armed
-  end
-end
-
-#10.times{|i| puts "i: #{i.character}"}
-
-#puts "+infecting Method"
-#Method.infect_all!
-
-#infect global objects
-Module.constants.each do |c|
-  unless c == :Method or c == :UnboundMethod or c == :Config or c == :Object or c == :BasicObject or c == :Character
+  #infect global objects
+  ::Module.constants.each do |c|
     #puts "+infecting #{c}"
-    cs = Module.const_get(c)
-    cs.infect_all! if cs.is_a? Class
+    cs = ::Module.const_get(c)
+    cs.infect_all! if cs.is_a? ::Class
   end
 end
 
 puts "Graf Zahl resurrected."
-Object.arm!
+BasicObject.arm!
 

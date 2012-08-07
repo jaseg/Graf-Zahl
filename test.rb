@@ -5,12 +5,9 @@ require File.dirname(__FILE__)+"/Graf Zahl.rb"
 puts 1.character
 i = 0
 puts i.character
-i += 1
-i += 1
-i += 1
-i += 1
-i += 1
-i += 1
+1000.times do
+  i = i + 1
+end
 puts 1.character
 puts i.character
 =begin
