@@ -1,0 +1,16 @@
+ * Call modification in case of character differences
+    * skip call if character difference is too large
+    * call twice if characters are too similar
+    * call random stuff with bangs on the end on args and result if characters are do disjunct
+        * Array.shuffle!
+    * swap arguments under certain conditions
+    * return one of the argument under other conditions
+    * randomize fixnums
+    * garble strings
+ * Addition of special handling of "evil" characters
+    * making it more easy for stuff to turn evil
+    * making evil stuff messing shit up
+    * making evil stuff able to infect others with its evilness
+    * providing a way to "exorcise" evil characters by sacrificing a good character
+ * Improve performance
+    * I think, unfortunately, by design this will be pretty much impossible.
