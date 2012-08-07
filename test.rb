@@ -2,13 +2,17 @@
 
 require File.dirname(__FILE__)+"/Graf Zahl.rb"
 
+puts 1.character
 i = 0
+puts i.character
 i += 1
 i += 1
 i += 1
 i += 1
 i += 1
 i += 1
+puts 1.character
+puts i.character
 =begin
 class Foo
   def bar

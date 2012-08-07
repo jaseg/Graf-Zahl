@@ -25,6 +25,7 @@ class Character
   attr_accessor :traits_delta
 
   def initialize(traits = Array.new(TRAITS.size, 0), traits_delta = Array.new(TRAITS.size, 0))
+    #puts "creating character with #{traits.join(',')}"
     @traits = traits.to_a
     @traits_delta = traits_delta.to_a
   end
@@ -48,6 +49,7 @@ class Character
   end
 
   def step()
+    #puts "stepping self: #{@traits.join(',')}"
     nc = self + Character.new(@traits_delta)
     #FIXME Constants ahead!
     nc.traits_delta = (Character.new(@traits_delta) * 0.1).traits
@@ -93,7 +95,7 @@ class Character
     end
   end
 
-  def traits= (*params)
+  def traits= (params)
     @traits = params.zip(@traits).map{|a| a[0] || a[1]}
   end
 
@@ -126,7 +128,7 @@ end
 class BasicObject
   def character= (*params)
     @character = ::Character.new unless @character
-    @character.traits = *(params[0])
+    @character.traits = params[0]
     #puts "set character for #{self.to_s} to #{@character} according to #{params[0]}"
   end
 end
@@ -155,19 +157,18 @@ class BasicObject
   end
 
   def self.process_call(inst, method, name, chr, *args, &block)
-    @@armed = false if @@armed
-    puts method
-    @@armed = true unless @@armed.nil?
     rv = method.bind(inst).call(*args, &block)
     return rv unless @@armed
     @@armed = false
-    puts "processing call: #{method} which is #{chr || "uncharacteristic"} on #{inst} which is a #{self} with #{inst.character || "no character"} given #{args.size > 0?args:"no args"} and #{block || "no block"}"
+    #puts "processing call: #{method} which is #{chr || "uncharacteristic"} on #{inst} which is a #{self} with #{inst.character || "no character"} given #{args.size > 0?args:"no args"} and #{block || "no block"}"
 
     #avgargs = args.inject(:+) / args.size
     self.class.character.step!
     args.each{|a| character.acc! a.character, 0.001}
     self.class.character.acc! character, 0.0001
+    rv.character.step!
     args.each do |a| #FIXME constants ahead!
+      a.character.step!
       a.character.acc! chr, 0.01
       a.character.acc! character, 0.01
       a.character.acc! self.class.character, 0.001
@@ -230,6 +231,8 @@ class BasicObject
     infect_method(name) if @@armed
   end
 end
+
+#10.times{|i| puts "i: #{i.character}"}
 
 #puts "+infecting Method"
 #Method.infect_all!
