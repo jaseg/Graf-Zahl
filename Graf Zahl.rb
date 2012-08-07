@@ -68,7 +68,8 @@ class Character
 
   #returns a character
   def cap! ()
-    @traits.map! do |v|
+    @traits = @traits.each_with_index.map do |v, i|
+      next v if ["tau", "i"].include? TRAITS[i]
       if v < 0
         0
       elsif v > 1
