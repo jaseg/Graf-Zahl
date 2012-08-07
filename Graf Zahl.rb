@@ -165,9 +165,9 @@ class BasicObject
       @@armed = false
       #puts "processing call: #{method} which is #{method.character || "uncharacteristic"} on #{self} which is a #{self.class} with #{character || "no character"} given #{args.size > 0?args:"no args"} and #{block || "no block"}"
 
-      #character.step!
-      #rv.character.step!
-      #name.character.step!
+      character.step!
+      rv.character.step!
+      name.character.step!
       args.each do |a| #FIXME constants ahead!
         a.character.step!
         a.character.acc! name.character, 0.01

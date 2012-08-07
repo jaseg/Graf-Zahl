@@ -2,25 +2,15 @@
 
 require File.dirname(__FILE__)+"/Graf Zahl.rb"
 
+puts "character of 1:"
 puts 1.character
 i = 0
+puts "character of i:"
 puts i.character
-1000.times do
+100.times do
   i = i + 1
 end
+puts "character of 1:"
 puts 1.character
+puts "character of i:"
 puts i.character
-=begin
-class Foo
-  def bar
-    puts "bar called"
-  end
-end
-
-f = Foo.new
-f.bar
-=end
-
-#puts f.method(:bar).source_location
-#puts Foo.inspect
-
