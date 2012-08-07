@@ -32,7 +32,7 @@ class Character
 
   def acc(chr, factor)
     return @traits_delta unless chr
-    @traits_delta + (chr - self.traits) * factor
+    tplus (tmult (tminus chr.traits, traits), factor), traits_delta
   end
 
   #that stuff is still kinda indirect.
@@ -41,25 +41,25 @@ class Character
   end
 
   def step! ()
-    @traits = @traits + @traits_delta
-    @traits_delta = @traits_delta * 0.1
+    @traits = tplus @traits, @traits_delta
+    @traits_delta = tmult @traits_delta, 0.1
     cap!
   end
 
-  def - (t)
-    @traits.zip(c.traits).map{|a| a[0]-a[1]}
+  def tminus (a,b)
+    a.zip(b).map{|c| c[0]-c[1]}
   end
 
-  def + (t)
-    @traits.zip(c.traits).map{|a| a[0]+a[1]}
+  def tplus (a,b)
+    a.zip(b).map{|c| c[0]+c[1]}
   end
 
-  def * (t)
-    @traits.map{|t| t*s}
+  def tmult (a,s)
+    a.map{|t| t*s}
   end
-  
-  def / (t)
-    @traits.map{|t| t/s}
+
+  def tdiv (a,s)
+    a.map{|t| t/s}
   end
 
   def length
@@ -147,6 +147,12 @@ class Symbol
   end
 end
 
+class Method
+  def character ()
+    name.to_sym.character
+  end
+end
+
 class BasicObject
   def character ()
     self.class.name.to_sym.character
@@ -155,13 +161,12 @@ class BasicObject
   def process_call(method, name, *args, &block)
     rv = method.bind(self).call(*args, &block)
     if @@armed
-      puts "processing call..."
       @@armed = false
-      #puts "processing call: #{method} which is #{chr || "uncharacteristic"} on #{inst} which is a #{self} with #{inst.character || "no character"} given #{args.size > 0?args:"no args"} and #{block || "no block"}"
+      #puts "processing call: #{method} which is #{method.character || "uncharacteristic"} on #{self} which is a #{self.class} with #{character || "no character"} given #{args.size > 0?args:"no args"} and #{block || "no block"}"
 
-      character.step!
-      rv.character.step!
-      name.character.step!
+      #character.step!
+      #rv.character.step!
+      #name.character.step!
       args.each do |a| #FIXME constants ahead!
         a.character.step!
         a.character.acc! name.character, 0.01
@@ -190,8 +195,10 @@ class BasicObject
   
   def self.infect_all!
     self.instance_methods.each do |m|
-      #puts "\t-infecting #{m}"
-      infect_method(m)
+      unless [:process_call, :bind, :call].include? m
+        #puts "\t-infecting #{m}"
+        infect_method(m)
+      end
     end
   end
 
@@ -215,9 +222,11 @@ class BasicObject
 
   #infect global objects
   ::Module.constants.each do |c|
-    #puts "+infecting #{c}"
-    cs = ::Module.const_get(c)
-    cs.infect_all! if cs.is_a? ::Class
+    unless [:Config].include? c
+      #puts "+infecting #{c}"
+      cs = ::Module.const_get(c)
+      cs.infect_all! if cs.is_a? ::Class
+    end
   end
 end
 
